@@ -1,31 +1,39 @@
-name: Linux RDP (SSH Tunnel)
+name: Linux RDP
 
 on: [push, workflow_dispatch]
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Switch to your preferred Linux runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 9999
 
     steps:
-    - name: Checkout code (if applicable)
-      uses: actions/checkout@v3  # Uncomment if needed for your project
-
-    - name: Install dependencies (adjust as needed)
-      run: sudo apt update && sudo apt install -y openssh-server
-
-    - name: Generate SSH Key (optional, replace with existing key)
+    - name: Update and install dependencies
       run: |
-        ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
-        echo "** IMPORTANT ** Please copy the contents of ~/.ssh/id_rsa to your local machine for SSH access"
+        sudo apt update
+        sudo apt install -y xrdp xfce4 xfce4-goodies
+        sudo systemctl enable xrdp
+        sudo systemctl start xrdp
+    
+    - name: Set up user and password
+      run: |
+        sudo useradd -m $USERNAME
+        echo "$USERNAME:$PASSWORD" | sudo chpasswd
+        sudo usermod -aG ssl-cert $USERNAME
       env:
-        DEBIAN_FRONTEND=noninteractive  # Suppress prompts
+        USERNAME: ${{ secrets.USERNAME }}
+        PASSWORD: ${{ secrets.PASSWORD }}
 
-    - name: Create SSH Tunnel (replace with your VM's IP and desired port)
-      run: ssh -N -f -L 3389:localhost:22 user@your_vm_ip  # Adjust user and port
-
-    - name: Connect to RDP (using your local machine)
+    - name: Configure XRDP
       run: |
-        echo "** Connect to RDP using your local machine's RDP client:"
-        echo "     - Server: localhost"
-        echo "     - Port: 3389"
-        echo "     - Username (if prompted): user (replace with your VM username)"
+        echo "xfce4-session" > ~/.xsession
+        sudo systemctl restart xrdp
+
+    - name: Create Ngrok Tunnel
+      run: |
+        wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-linux-amd64.zip
+        unzip ngrok-stable-linux-amd64.zip
+        ./ngrok authtoken $NGROK_AUTH_TOKEN
+        ./ngrok tcp 3389 &
+      env:
+        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
