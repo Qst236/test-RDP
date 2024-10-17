@@ -1,0 +1,31 @@
+name: Linux RDP (SSH Tunnel)
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Switch to your preferred Linux runner
+
+    steps:
+    - name: Checkout code (if applicable)
+      uses: actions/checkout@v3  # Uncomment if needed for your project
+
+    - name: Install dependencies (adjust as needed)
+      run: sudo apt update && sudo apt install -y openssh-server
+
+    - name: Generate SSH Key (optional, replace with existing key)
+      run: |
+        ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+        echo "** IMPORTANT ** Please copy the contents of ~/.ssh/id_rsa to your local machine for SSH access"
+      env:
+        DEBIAN_FRONTEND=noninteractive  # Suppress prompts
+
+    - name: Create SSH Tunnel (replace with your VM's IP and desired port)
+      run: ssh -N -f -L 3389:localhost:22 user@your_vm_ip  # Adjust user and port
+
+    - name: Connect to RDP (using your local machine)
+      run: |
+        echo "** Connect to RDP using your local machine's RDP client:"
+        echo "     - Server: localhost"
+        echo "     - Port: 3389"
+        echo "     - Username (if prompted): user (replace with your VM username)"
